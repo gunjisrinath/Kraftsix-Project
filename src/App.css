@@ -133,6 +133,8 @@
   .doneCol{
     background-color: rgb(60, 168, 211);
   }
+
+  
   .createDiv{
     display: flex;
     justify-content: flex-end;
@@ -182,4 +184,10 @@
     border-radius: 10px;
     
   } 
-  
+  .navBarDashboard{
+    display: flex;
+    gap:3rem;
+   align-items: center;
+   color: #06182b;
+   font-weight: 600;
+  }

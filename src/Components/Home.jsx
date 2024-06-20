@@ -1,47 +1,39 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "react-bootstrap/Navbar";
 import Container from "react-bootstrap/Container";
-import { Button, Modal, Nav, NavDropdown } from "react-bootstrap";
-import { doc, setDoc, collection, getDocs } from "firebase/firestore";
-import { db } from "./firebase"; // Import your firebase configuration
+import { Button, Modal, Nav } from "react-bootstrap";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "./firebase";
 
 import Todolist from "./Todolist";
 import logo from "../assets/logo.png";
 import profile from "../assets/profile.png";
 
-const Home = () => {
+const Home = ({ tickets, setTickets }) => {
   const [showModal, setShowModal] = useState(false);
-  const [newTicketID, setNewTicketID] = useState('');
+  const [newTicketID, setNewTicketID] = useState("");
   const [lastTicketID, setLastTicketID] = useState(() => {
-    return localStorage.getItem('lastTicketID') || 'AT000';
+    return localStorage.getItem("lastTicketID") || "AT000";
   });
   const [formData, setFormData] = useState({
-    project: '',
-    issueType: '',
-    summary: '',
-    description: '',
-    reporter: '',
-    assigningTo: '',
+    project: "",
+    issueType: "",
+    summary: "",
+    description: "",
+    reporter: "",
+    assigningTo: "",
   });
-  const [tickets, setTickets] = useState([]);
+  const [errors, setErrors] = useState({});
 
-  useEffect(() => {
-    // Fetch tickets from Firestore when the component mounts
-    const fetchTickets = async () => {
-      const querySnapshot = await getDocs(collection(db, "tickets"));
-      const fetchedTickets = [];
-      querySnapshot.forEach((doc) => {
-        fetchedTickets.push(doc.data());
-      });
-      setTickets(fetchedTickets);
-    };
-
-    fetchTickets();
-  }, []);
+  const navigate = useNavigate();
+  const navigateToDashboard = () => {
+    navigate("/DashBoard");
+  };
 
   const generateTicketID = (lastID) => {
     const numericPart = parseInt(lastID.slice(2)) + 1;
-    const newID = numericPart.toString().padStart(3, '0');
+    const newID = numericPart.toString().padStart(3, "0");
     return `AT${newID}`;
   };
 
@@ -51,22 +43,49 @@ const Home = () => {
     setShowModal(true);
   };
 
-  const handleClose = () => setShowModal(false);
+  const handleClose = () => {
+    setShowModal(false);
+    setFormData({
+      project: "",
+      issueType: "",
+      summary: "",
+      description: "",
+      reporter: "",
+      assigningTo: "",
+    });
+    setErrors({});
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.project) newErrors.project = "Project is required";
+    if (!formData.issueType) newErrors.issueType = "Issue type is required";
+    if (!formData.summary) newErrors.summary = "Summary is required";
+    if (!formData.description)
+      newErrors.description = "Description is required";
+    if (!formData.reporter) newErrors.reporter = "Reporter is required";
+    if (!formData.assigningTo)
+      newErrors.assigningTo = "Assigning To is required";
+    return newErrors;
+  };
 
   const handleSave = async () => {
+    const formErrors = validateForm();
+    if (Object.keys(formErrors).length > 0) {
+      setErrors(formErrors);
+      return;
+    }
+
     try {
-      // Save the form data to Firestore
       await setDoc(doc(db, "tickets", newTicketID), {
         ticketID: newTicketID,
         ...formData,
         createdAt: new Date(),
       });
 
-      // Update the last ticket ID
       setLastTicketID(newTicketID);
-      localStorage.setItem('lastTicketID', newTicketID);
+      localStorage.setItem("lastTicketID", newTicketID);
 
-      // Update the tickets state with the new ticket
       setTickets((prevTickets) => [
         ...prevTickets,
         {
@@ -104,18 +123,10 @@ const Home = () => {
             />
             {"  "}
           </Navbar.Brand>
-          <NavDropdown title="DashBoard" id="basic-nav-dropdown">
-            <NavDropdown.Item href="#action/3.1">
-              <h6>Srinath</h6>
-            </NavDropdown.Item>
-            <NavDropdown.Item href="#action/3.2">
-              <h6>Rakesh</h6>
-            </NavDropdown.Item>
-            <NavDropdown.Item href="#action/3.3">
-              <h6>Ganesh</h6>
-            </NavDropdown.Item>
-          </NavDropdown>
-          <Nav>Issues</Nav>
+          <Nav onClick={navigateToDashboard} style={{ cursor: "pointer" }}>
+            DashBoard
+          </Nav>
+
           <img
             alt=""
             src={profile}
@@ -123,7 +134,14 @@ const Home = () => {
             height="40"
             className="d-inline-block align-top profile"
           />
-          <Button variant="danger">LogOut</Button>
+          <Button
+            variant="danger"
+            onClick={() => {
+              navigate("/");
+            }}
+          >
+            LogOut
+          </Button>
         </Container>
       </Navbar>
       <div className="createDiv">
@@ -139,17 +157,71 @@ const Home = () => {
         </Modal.Header>
         <Modal.Body className="modalBody">
           <p>Project</p>
-          <input type="text" name="project" value={formData.project} onChange={handleChange} />
+          <input
+            type="text"
+            name="project"
+            value={formData.project}
+            onChange={handleChange}
+            className={errors.project ? "is-invalid" : ""}
+          />
+          {errors.project && (
+            <div className="invalid-feedback">{errors.project}</div>
+          )}
           <p>Issue type</p>
-          <input type="text" name="issueType" value={formData.issueType} onChange={handleChange} />
+          <input
+            type="text"
+            name="issueType"
+            value={formData.issueType}
+            onChange={handleChange}
+            className={errors.issueType ? "is-invalid" : ""}
+          />
+          {errors.issueType && (
+            <div className="invalid-feedback">{errors.issueType}</div>
+          )}
           <p>Summary</p>
-          <input type="text" name="summary" value={formData.summary} onChange={handleChange} />
+          <input
+            type="text"
+            name="summary"
+            value={formData.summary}
+            onChange={handleChange}
+            className={errors.summary ? "is-invalid" : ""}
+          />
+          {errors.summary && (
+            <div className="invalid-feedback">{errors.summary}</div>
+          )}
           <p>Description</p>
-          <textarea name="description" value={formData.description} onChange={handleChange} placeholder="write the issue here" />
+          <textarea
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            placeholder="write the issue here"
+            className={errors.description ? "is-invalid" : ""}
+          />
+          {errors.description && (
+            <div className="invalid-feedback">{errors.description}</div>
+          )}
           <p>Reporter</p>
-          <input type="text" name="reporter" value={formData.reporter} onChange={handleChange} />
+          <input
+            type="text"
+            name="reporter"
+            value={formData.reporter}
+            onChange={handleChange}
+            className={errors.reporter ? "is-invalid" : ""}
+          />
+          {errors.reporter && (
+            <div className="invalid-feedback">{errors.reporter}</div>
+          )}
           <p>Assigning To</p>
-          <input type="text" name="assigningTo" value={formData.assigningTo} onChange={handleChange} />
+          <input
+            type="text"
+            name="assigningTo"
+            value={formData.assigningTo}
+            onChange={handleChange}
+            className={errors.assigningTo ? "is-invalid" : ""}
+          />
+          {errors.assigningTo && (
+            <div className="invalid-feedback">{errors.assigningTo}</div>
+          )}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleClose}>
@@ -160,7 +232,8 @@ const Home = () => {
           </Button>
         </Modal.Footer>
       </Modal>
-      <Todolist tickets={tickets} />
+      <h2 style={{ color: "black", backgroundColor: "yellow" }}>User</h2>
+      <Todolist tickets={tickets} setTickets={setTickets} />
     </div>
   );
 };
